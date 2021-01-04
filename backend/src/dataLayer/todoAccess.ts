@@ -1,8 +1,8 @@
 import * as AWS  from 'aws-sdk'
-//import * as AWSXRay from 'aws-xray-sdk'
+import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 
-//const XAWS = AWSXRay.captureAWS(AWS)
+const XAWS = AWSXRay.captureAWS(AWS)
 
 import { TodoItem } from '../models/TodoItem'
 
@@ -10,7 +10,11 @@ export class TodoAccess {
 
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly todoTable = process.env.TODOs_TABLE) {
+    private readonly s3 = new AWS.S3({signatureVersion: 'v4'}),
+    private readonly todoTable = process.env.TODOs_TABLE,
+    private readonly bucketName = process.env.IMAGES_S3_BUCKET,
+    private readonly urlExpiration = process.env.SIGNED_URL_EXPIRATION
+    ) {
   }
 
   async getAllTODOs(userId: string): Promise<TodoItem[]> {
@@ -70,7 +74,34 @@ export class TodoAccess {
       },
     }
     ).promise()
-    return todoId
+    return ""
+  }
+
+  async updateImageURL(userId: string, todoId: string, imageId: string): Promise<string> {
+    const imageURL =  `https://${this.bucketName}.s3.amazonaws.com/${imageId}`
+
+    await this.docClient.update({
+      TableName: this.todoTable,
+      Key: {
+          "userId": userId,
+          "todoId": todoId
+      },
+      UpdateExpression: 'set attachmentUrl = :url',
+      ExpressionAttributeValues: {
+          ':url': imageURL
+        },
+      ReturnValues: 'UPDATED_NEW'
+    }).promise()
+
+    return imageURL
+  }
+
+  getUploadUrl(imageId: string) {
+    return this.s3.getSignedUrl('putObject', {
+      Bucket: this.bucketName,
+      Key: imageId,
+      Expires: this.urlExpiration
+    })
   }
 }
 
@@ -83,6 +114,7 @@ function createDynamoDBClient() {
     })
   }
 
- // return new XAWS.DynamoDB.DocumentClient()
-  return new AWS.DynamoDB.DocumentClient()
+  return new XAWS.DynamoDB.DocumentClient()
 }
+
+

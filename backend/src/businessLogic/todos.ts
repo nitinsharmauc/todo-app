@@ -60,3 +60,17 @@ export async function deleteTodo(
 ): Promise<string> {
     return todoAccess.deleteTodo(parseUserId(jwtToken), todoId)
 }
+
+export async function generateUploadUrl(
+    todoId: string,
+    jwtToken: string
+): Promise<string> {
+
+    const imageId = uuid.v4()
+    const userId = parseUserId(jwtToken)
+    console.log("Getting uploadURL")
+
+    await todoAccess.updateImageURL(userId, todoId, imageId)
+
+    return todoAccess.getUploadUrl(imageId)
+}
