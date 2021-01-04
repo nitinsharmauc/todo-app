@@ -58,7 +58,11 @@ export async function deleteTodo(
     todoId: string,
     jwtToken: string
 ): Promise<string> {
-    return todoAccess.deleteTodo(parseUserId(jwtToken), todoId)
+    const userId = parseUserId(jwtToken)
+
+    await clearExistingImage(userId, todoId)
+    
+    return todoAccess.deleteTodo(userId, todoId)
 }
 
 export async function generateUploadUrl(
@@ -70,7 +74,20 @@ export async function generateUploadUrl(
     const userId = parseUserId(jwtToken)
     console.log("Getting uploadURL")
 
+    // Delete previous image if exists
+    await clearExistingImage(userId, todoId)
+
     await todoAccess.updateImageURL(userId, todoId, imageId)
 
     return todoAccess.getUploadUrl(imageId)
+}
+
+async function clearExistingImage(userId: string, todoId: string) {
+    const todoToUpdate = await todoAccess.getTODO(userId, todoId)
+
+    console.log("Clearing todo image : ", todoToUpdate)
+    
+    if(todoToUpdate != null && todoToUpdate.attachmentUrl != "") {
+        await todoAccess.deleteImage(todoToUpdate.attachmentUrl)
+    }
 }

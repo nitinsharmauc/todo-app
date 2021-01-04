@@ -18,7 +18,7 @@ export class TodoAccess {
   }
 
   async getAllTODOs(userId: string): Promise<TodoItem[]> {
-    console.log('Getting all groups for ' + userId)
+    console.log('Getting all todos for ' + userId)
 
     const result = await this.docClient.query({
       TableName: this.todoTable,
@@ -31,6 +31,25 @@ export class TodoAccess {
   
     const items = result.Items
     return items as TodoItem[]
+  }
+
+  async getTODO(userId: string, todoId: string): Promise<TodoItem> {
+    console.log('Getting TODO for ' + todoId)
+
+    const result = await this.docClient.query({
+      TableName: this.todoTable,
+      KeyConditionExpression: 'userId = :userId and todoId = :todoId',
+      ExpressionAttributeValues: {
+        ':userId': userId,
+        ':todoId': todoId
+      }
+    }).promise()
+  
+    const items = result.Items as TodoItem[]
+    if (items.length > 0) {
+      return items[0]
+    }
+    return null
   }
 
   async createTodo(todoItem: TodoItem): Promise<TodoItem> {
@@ -78,7 +97,7 @@ export class TodoAccess {
   }
 
   async updateImageURL(userId: string, todoId: string, imageId: string): Promise<string> {
-    const imageURL =  `https://${this.bucketName}.s3.amazonaws.com/${imageId}`
+    const imageURL =  this.getImageURL(imageId)
 
     await this.docClient.update({
       TableName: this.todoTable,
@@ -102,6 +121,21 @@ export class TodoAccess {
       Key: imageId,
       Expires: this.urlExpiration
     })
+  }
+
+  async deleteImage(imageURL: string) {
+    console.log("Deleting image : ", imageURL)
+    const imageId = imageURL.split(`/`)[3]
+    console.log("imageId is : ", imageId)
+    
+    await this.s3.deleteObject({
+      Bucket: this.bucketName,
+      Key: imageId
+    }).promise()
+  }
+
+  getImageURL(imageId: string) {
+    return `https://${this.bucketName}.s3.amazonaws.com/${imageId}`
   }
 }
 
