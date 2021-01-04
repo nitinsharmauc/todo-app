@@ -5,7 +5,9 @@ import { TodoAccess } from "../dataLayer/TodoAccess";
 import { CreateTodoRequest } from "../requests/CreateTodoRequest";
 import { parseUserId } from '../auth/utils'
 import { UpdateTodoRequest } from '../requests/UpdateTodoRequest';
+import { createLogger } from '../utils/logger'
 
+const logger = createLogger('auth')
 const todoAccess = new TodoAccess()
 
 export async function getAllTodos(jwtToken: string) : Promise<TodoItem[]> {
@@ -19,8 +21,8 @@ export async function createTodo(
 
     const itemId = uuid.v4()
     const userId = parseUserId(jwtToken)
-    console.log("Creating todo : ", createTodoRequest)
-    console.log("User : ", userId)
+    logger.info("Creating todo : ", createTodoRequest)
+    logger.info("User : ", userId)
     
     return await todoAccess.createTodo({
         userId: userId,
@@ -40,8 +42,8 @@ export async function updateTodo(
 ): Promise<TodoItem> {
 
     const userId = parseUserId(jwtToken)
-    console.log("Updating todo : ", updateTodoRequest)
-    console.log("User : ", userId)
+    logger.info("Updating todo : ", updateTodoRequest)
+    logger.info("User : ", userId)
     
     return await todoAccess.updateTodo({
         userId: userId,
@@ -72,7 +74,7 @@ export async function generateUploadUrl(
 
     const imageId = uuid.v4()
     const userId = parseUserId(jwtToken)
-    console.log("Getting uploadURL")
+    logger.info("Getting uploadURL")
 
     // Delete previous image if exists
     await clearExistingImage(userId, todoId)
@@ -85,7 +87,7 @@ export async function generateUploadUrl(
 async function clearExistingImage(userId: string, todoId: string) {
     const todoToUpdate = await todoAccess.getTODO(userId, todoId)
 
-    console.log("Clearing todo image : ", todoToUpdate)
+    logger.info("Clearing todo image : ", todoToUpdate)
     
     if(todoToUpdate != null && todoToUpdate.attachmentUrl != "") {
         await todoAccess.deleteImage(todoToUpdate.attachmentUrl)

@@ -1,7 +1,9 @@
 import * as AWS  from 'aws-sdk'
 import * as AWSXRay from 'aws-xray-sdk'
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
+import { createLogger } from '../utils/logger'
 
+const logger = createLogger('auth')
 const XAWS = AWSXRay.captureAWS(AWS)
 
 import { TodoItem } from '../models/TodoItem'
@@ -18,7 +20,7 @@ export class TodoAccess {
   }
 
   async getAllTODOs(userId: string): Promise<TodoItem[]> {
-    console.log('Getting all todos for ' + userId)
+    logger.info('Getting all todos for ' + userId)
 
     const result = await this.docClient.query({
       TableName: this.todoTable,
@@ -34,7 +36,7 @@ export class TodoAccess {
   }
 
   async getTODO(userId: string, todoId: string): Promise<TodoItem> {
-    console.log('Getting TODO for ' + todoId)
+    logger.info('Getting TODO for ' + todoId)
 
     const result = await this.docClient.query({
       TableName: this.todoTable,
@@ -58,7 +60,7 @@ export class TodoAccess {
       Item: todoItem
     }).promise()
 
-    console.log("Create todo done.")
+    logger.info("Create todo done.")
     return todoItem
   }
 
@@ -124,9 +126,9 @@ export class TodoAccess {
   }
 
   async deleteImage(imageURL: string) {
-    console.log("Deleting image : ", imageURL)
+    logger.info("Deleting image : ", imageURL)
     const imageId = imageURL.split(`/`)[3]
-    console.log("imageId is : ", imageId)
+    logger.info("imageId is : ", imageId)
     
     await this.s3.deleteObject({
       Bucket: this.bucketName,
@@ -141,7 +143,7 @@ export class TodoAccess {
 
 function createDynamoDBClient() {
   if (process.env.IS_OFFLINE) {
-    console.log('Creating a local DynamoDB instance')
+    logger.info('Creating a local DynamoDB instance')
     return new AWS.DynamoDB.DocumentClient({
       region: 'localhost',
       endpoint: 'http://localhost:8000'
